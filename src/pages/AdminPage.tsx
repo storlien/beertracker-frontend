@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { doc, onSnapshot, collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
-import { Shield, Clock, Database, RefreshCw } from "lucide-react";
+import { Shield, Clock, Users, CreditCard } from "lucide-react";
 import type { SyncState } from "../types";
 
 export function AdminPage() {
   const [syncState, setSyncState] = useState<SyncState | null>(null);
-  const [stats, setStats] = useState({ cards: 0, users: 0, totalSpent: 0 });
+  const [stats, setStats] = useState({ users: 0, unlinked: 0, avgPerUser: 0 });
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "info", "state"), (d) => {
@@ -16,11 +16,23 @@ export function AdminPage() {
     async function fetchStats() {
       const cardsSnap = await getDocs(collection(db, "cards"));
       const usersSnap = await getDocs(collection(db, "users"));
-      const total = cardsSnap.docs.reduce((s, d) => s + (d.data().sum || 0), 0);
+
+      let totalLinked = 0;
+      let unlinked = 0;
+      cardsSnap.docs.forEach((d) => {
+        const data = d.data();
+        if (data.linkedUserId && data.linkedUserId !== "") {
+          totalLinked += data.sum || 0;
+        } else {
+          unlinked++;
+        }
+      });
+
+      const userCount = usersSnap.size;
       setStats({
-        cards: cardsSnap.size,
-        users: usersSnap.size,
-        totalSpent: total,
+        users: userCount,
+        unlinked,
+        avgPerUser: userCount > 0 ? totalLinked / userCount : 0,
       });
     }
     fetchStats();
@@ -37,9 +49,9 @@ export function AdminPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <StatCard icon={Database} label="Total Cards" value={stats.cards.toString()} />
-        <StatCard icon={Shield} label="Total Users" value={stats.users.toString()} />
-        <StatCard icon={RefreshCw} label="Total Spent" value={`${stats.totalSpent.toFixed(0)} kr`} />
+        <StatCard icon={Users} label="Users" value={stats.users.toString()} />
+        <StatCard icon={CreditCard} label="Unlinked Cards" value={stats.unlinked.toLocaleString()} />
+        <StatCard icon={Shield} label="Avg Spent per User" value={`${stats.avgPerUser.toFixed(0)} kr`} />
       </div>
 
       {/* Sync Status */}
