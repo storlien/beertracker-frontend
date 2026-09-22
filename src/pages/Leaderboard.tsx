@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { collection, doc, onSnapshot, query, orderBy, limit, getCountFromServer } from "firebase/firestore";
 import { db } from "../firebase";
-import { Trophy, Clock, Users, TrendingUp, AlertTriangle, Info } from "lucide-react";
+import { Trophy, Clock, Users, AlertTriangle, Info } from "lucide-react";
 import type { Card, User, SyncState } from "../types";
 
 interface LeaderboardEntry {
@@ -22,8 +22,8 @@ export function Leaderboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch more cards to ensure we can build accurate aggregates
-    const q = query(collection(db, "cards"), orderBy("sum", "desc"), limit(250));
+    // Fetch all cards for accurate totals + leaderboard
+    const q = query(collection(db, "cards"), orderBy("sum", "desc"));
     const unsubCards = onSnapshot(
       q,
       (snapshot) => {
@@ -124,10 +124,9 @@ export function Leaderboard() {
   return (
     <div className="space-y-6">
       {/* Stats row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <StatCard icon={Trophy} label="Total Spent" value={`${totalSpent.toFixed(0)} kr`} />
         <StatCard icon={Users} label="No. cards used" value={totalCards.toLocaleString()} />
-        <StatCard icon={TrendingUp} label="Top Spender" value={entries[0]?.name || "-"} />
         <StatCard icon={Clock} label="Last Sync" value={syncState?.lastSyncAt ? formatTime(syncState.lastSyncAt) : "Never"} />
       </div>
 
