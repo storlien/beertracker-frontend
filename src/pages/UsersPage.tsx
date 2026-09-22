@@ -50,8 +50,9 @@ export function UsersPage() {
       toast.success("User added");
       setNewForm({ firstName: "", lastName: "", cards: "" });
       setShowAdd(false);
-    } catch {
-      toast.error("Failed to add user");
+    } catch (err: any) {
+      toast.error("Failed to add user: " + (err.message || String(err)));
+      console.error("Add user error:", err);
     }
   };
 
@@ -92,8 +93,9 @@ export function UsersPage() {
       await batch.commit();
       toast.success("User updated");
       setEditing(null);
-    } catch {
-      toast.error("Failed to update user");
+    } catch (err: any) {
+      toast.error("Failed to update user: " + (err.message || String(err)));
+      console.error("Update user error:", err);
     }
   };
 
@@ -114,8 +116,9 @@ export function UsersPage() {
       await batch.commit();
 
       toast.success("User deleted");
-    } catch {
-      toast.error("Failed to delete user");
+    } catch (err: any) {
+      toast.error("Failed to delete user: " + (err.message || String(err)));
+      console.error("Delete user error:", err);
     }
   };
 
