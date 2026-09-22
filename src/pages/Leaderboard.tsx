@@ -1,12 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { collection, doc, onSnapshot, query, orderBy, limit, getCountFromServer } from "firebase/firestore";
 import { db } from "../firebase";
 import { Trophy, Clock, Users, TrendingUp, AlertTriangle, Info } from "lucide-react";
 import type { Card, User, SyncState } from "../types";
 
+interface LeaderboardEntry {
+  id: string;
+  name: string;
+  isUser: boolean;
+  sum: number;
+  cards: string[];
+}
+
 export function Leaderboard() {
-  const [topCards, setTopCards] = useState<Card[]>([]);
+  const [cards, setCards] = useState<Card[]>([]);
   const [totalCards, setTotalCards] = useState(0);
   const [users, setUsers] = useState<Record<string, User>>({});
   const [syncState, setSyncState] = useState<SyncState | null>(null);
@@ -14,16 +22,16 @@ export function Leaderboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Top 50 cards for leaderboard table
-    const q = query(collection(db, "cards"), orderBy("sum", "desc"), limit(50));
-    const unsubTopCards = onSnapshot(
+    // Fetch more cards to ensure we can build accurate aggregates
+    const q = query(collection(db, "cards"), orderBy("sum", "desc"), limit(250));
+    const unsubCards = onSnapshot(
       q,
       (snapshot) => {
         const data = snapshot.docs.map((d) => ({
           cardNumber: d.id,
           ...d.data(),
         })) as Card[];
-        setTopCards(data);
+        setCards(data);
         setError(null);
         setLoading(false);
       },
@@ -34,7 +42,6 @@ export function Leaderboard() {
       }
     );
 
-    // Count all cards (once, not real-time — Firestore count is cheap)
     getCountFromServer(collection(db, "cards"))
       .then((snap) => setTotalCards(snap.data().count))
       .catch((err) => console.error("Failed to count cards:", err));
@@ -62,19 +69,57 @@ export function Leaderboard() {
     );
 
     return () => {
-      unsubTopCards();
+      unsubCards();
       unsubUsers();
       unsubState();
     };
   }, []);
 
-  const getCardOwner = (card: Card) => {
-    if (!card.linkedUserId || !users[card.linkedUserId]) return null;
-    const u = users[card.linkedUserId];
-    return `${u.firstName} ${u.lastName}`;
-  };
+  // Build leaderboard: aggregate users + unlinked cards
+  const entries = useMemo<LeaderboardEntry[]>(() => {
+    const userSums: Record<string, { sum: number; cards: string[] }> = {};
+    const unlinked: LeaderboardEntry[] = [];
 
-  const totalSpent = topCards.reduce((sum, c) => sum + c.sum, 0);
+    for (const card of cards) {
+      if (card.linkedUserId && users[card.linkedUserId]) {
+        if (!userSums[card.linkedUserId]) {
+          userSums[card.linkedUserId] = { sum: 0, cards: [] };
+        }
+        userSums[card.linkedUserId].sum += card.sum;
+        userSums[card.linkedUserId].cards.push(card.cardNumber);
+      } else {
+        unlinked.push({
+          id: card.cardNumber,
+          name: "Unknown",
+          isUser: false,
+          sum: card.sum,
+          cards: [card.cardNumber],
+        });
+      }
+    }
+
+    const userEntries: LeaderboardEntry[] = Object.entries(userSums).map(
+      ([userId, data]) => {
+        const user = users[userId];
+        return {
+          id: userId,
+          name: `${user.firstName} ${user.lastName}`,
+          isUser: true,
+          sum: data.sum,
+          cards: data.cards,
+        };
+      }
+    );
+
+    return [...userEntries, ...unlinked]
+      .sort((a, b) => b.sum - a.sum)
+      .slice(0, 100);
+  }, [cards, users]);
+
+  const totalSpent = useMemo(
+    () => cards.reduce((sum, c) => sum + c.sum, 0),
+    [cards]
+  );
 
   return (
     <div className="space-y-6">
@@ -82,7 +127,7 @@ export function Leaderboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard icon={Trophy} label="Total Spent" value={`${totalSpent.toFixed(0)} kr`} />
         <StatCard icon={Users} label="No. cards used" value={totalCards.toLocaleString()} />
-        <StatCard icon={TrendingUp} label="Top Spender" value={topCards[0] ? getCardOwner(topCards[0]) || topCards[0].cardNumber : "-"} />
+        <StatCard icon={TrendingUp} label="Top Spender" value={entries[0]?.name || "-"} />
         <StatCard icon={Clock} label="Last Sync" value={syncState?.lastSyncAt ? formatTime(syncState.lastSyncAt) : "Never"} />
       </div>
 
@@ -118,12 +163,12 @@ export function Leaderboard() {
             <Trophy className="w-5 h-5 text-primary" />
             Leaderboard
           </h2>
-          <span className="text-sm text-text-muted">Top 50 by amount spent</span>
+          <span className="text-sm text-text-muted">Top 100</span>
         </div>
 
         {loading ? (
           <div className="p-8 text-center text-text-muted">Loading...</div>
-        ) : topCards.length === 0 ? (
+        ) : entries.length === 0 ? (
           <div className="p-8 text-center text-text-muted">No cards yet</div>
         ) : (
           <div className="overflow-x-auto">
@@ -132,16 +177,15 @@ export function Leaderboard() {
                 <tr className="border-b border-border text-left text-sm text-text-muted">
                   <th className="px-4 py-2 w-12">#</th>
                   <th className="px-4 py-2">Name</th>
-                  <th className="px-4 py-2">Card</th>
+                  <th className="px-4 py-2">Cards</th>
                   <th className="px-4 py-2 text-right">Amount</th>
                 </tr>
               </thead>
               <tbody>
-                {topCards.map((card, index) => {
-                  const owner = getCardOwner(card);
+                {entries.map((entry, index) => {
                   const rank = index + 1;
                   return (
-                    <tr key={card.cardNumber} className="border-b border-border/50 hover:bg-surface-hover transition-colors">
+                    <tr key={entry.id} className="border-b border-border/50 hover:bg-surface-hover transition-colors">
                       <td className="px-4 py-3">
                         <span className={`inline-flex w-7 h-7 items-center justify-center rounded-full text-sm font-bold ${
                           rank === 1 ? "bg-yellow-500/20 text-yellow-400" :
@@ -153,19 +197,25 @@ export function Leaderboard() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        {owner ? (
-                          <span className="font-medium">{owner}</span>
-                        ) : (
-                          <span className="text-text-muted italic">Unknown</span>
-                        )}
+                        <span className={`font-medium ${entry.isUser ? "" : "text-text-muted italic"}`}>
+                          {entry.name}
+                        </span>
                       </td>
                       <td className="px-4 py-3">
-                        <Link to={`/cards/${card.cardNumber}`} className="font-mono text-sm text-text-muted hover:text-primary transition-colors">
-                          {maskCard(card.cardNumber)}
-                        </Link>
+                        <div className="flex flex-wrap gap-1">
+                          {entry.cards.map((c) => (
+                            <Link
+                              key={c}
+                              to={`/cards/${c}`}
+                              className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-surface-hover border border-border rounded hover:border-primary transition-colors font-mono"
+                            >
+                              {maskCard(c)}
+                            </Link>
+                          ))}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <span className="font-bold text-primary">{card.sum.toFixed(0)} kr</span>
+                        <span className="font-bold text-primary">{entry.sum.toFixed(0)} kr</span>
                       </td>
                     </tr>
                   );
