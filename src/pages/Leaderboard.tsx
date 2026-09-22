@@ -22,15 +22,11 @@ export function Leaderboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch all cards for accurate totals + leaderboard
-    const q = query(collection(db, "cards"), orderBy("sum", "desc"));
+    const q = query(collection(db, "cards"), orderBy("sum", "desc"), limit(250));
     const unsubCards = onSnapshot(
       q,
       (snapshot) => {
-        const data = snapshot.docs.map((d) => ({
-          cardNumber: d.id,
-          ...d.data(),
-        })) as Card[];
+        const data = snapshot.docs.map((d) => ({ cardNumber: d.id, ...d.data() }) as Card);
         setCards(data);
         setError(null);
         setLoading(false);
@@ -61,9 +57,7 @@ export function Leaderboard() {
     const unsubState = onSnapshot(
       doc(db, "info", "state"),
       (d) => {
-        if (d.exists()) {
-          setSyncState(d.data() as SyncState);
-        }
+        if (d.exists()) setSyncState(d.data() as SyncState);
       },
       (err) => console.error("Firestore state error:", err)
     );
@@ -75,18 +69,30 @@ export function Leaderboard() {
     };
   }, []);
 
-  // Build leaderboard: aggregate users + unlinked cards
+  // Build ownership map: cardNumber -> {userId, name}
+  const cardOwnerMap = useMemo(() => {
+    const map: Record<string, { userId: string; name: string }> = {};
+    Object.values(users).forEach((user) => {
+      user.cards?.forEach((cardNum) => {
+        map[cardNum] = { userId: user.id, name: `${user.firstName} ${user.lastName}` };
+      });
+    });
+    return map;
+  }, [users]);
+
+  // Build leaderboard: aggregate by user + unlinked cards
   const entries = useMemo<LeaderboardEntry[]>(() => {
     const userSums: Record<string, { sum: number; cards: string[] }> = {};
     const unlinked: LeaderboardEntry[] = [];
 
     for (const card of cards) {
-      if (card.linkedUserId && users[card.linkedUserId]) {
-        if (!userSums[card.linkedUserId]) {
-          userSums[card.linkedUserId] = { sum: 0, cards: [] };
+      const owner = cardOwnerMap[card.cardNumber];
+      if (owner) {
+        if (!userSums[owner.userId]) {
+          userSums[owner.userId] = { sum: 0, cards: [] };
         }
-        userSums[card.linkedUserId].sum += card.sum;
-        userSums[card.linkedUserId].cards.push(card.cardNumber);
+        userSums[owner.userId].sum += card.sum;
+        userSums[owner.userId].cards.push(card.cardNumber);
       } else {
         unlinked.push({
           id: card.cardNumber,
@@ -103,7 +109,7 @@ export function Leaderboard() {
         const user = users[userId];
         return {
           id: userId,
-          name: `${user.firstName} ${user.lastName}`,
+          name: user ? `${user.firstName} ${user.lastName}` : "Unknown",
           isUser: true,
           sum: data.sum,
           cards: data.cards,
@@ -114,7 +120,7 @@ export function Leaderboard() {
     return [...userEntries, ...unlinked]
       .sort((a, b) => b.sum - a.sum)
       .slice(0, 100);
-  }, [cards, users]);
+  }, [cards, cardOwnerMap, users]);
 
   const totalSpent = useMemo(
     () => cards.reduce((sum, c) => sum + c.sum, 0),
@@ -123,19 +129,17 @@ export function Leaderboard() {
 
   return (
     <div className="space-y-6">
-      {/* Stats row */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <StatCard icon={Trophy} label="Total Spent" value={`${totalSpent.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} kr`} />
         <StatCard icon={Users} label="No. cards used" value={totalCards.toLocaleString()} />
         <StatCard icon={Clock} label="Last Sync" value={syncState?.lastSyncAt ? formatTime(syncState.lastSyncAt) : "Never"} />
       </div>
 
-      {/* Historical data note */}
       <div className="bg-primary/5 border border-primary/20 rounded-lg px-4 py-3 flex items-start gap-3">
         <Info className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
         <div>
           <p className="text-sm text-text">
-            Data includes all historical purchases from the earliest registered transaction.
+            Data includes all historical purchases from 16 October 2020.
             New transactions are synced automatically from Zettle.
           </p>
         </div>
@@ -155,7 +159,6 @@ export function Leaderboard() {
         </div>
       )}
 
-      {/* Leaderboard table */}
       <div className="bg-surface rounded-lg border border-border overflow-hidden">
         <div className="px-4 py-3 border-b border-border flex items-center justify-between">
           <h2 className="text-lg font-semibold flex items-center gap-2">

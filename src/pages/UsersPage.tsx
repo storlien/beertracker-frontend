@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, writeBatch } from "firebase/firestore";
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../auth/AuthProvider";
 import { Plus, Trash2, Edit3, CreditCard } from "lucide-react";
@@ -23,31 +23,24 @@ export function UsersPage() {
     return () => unsub();
   }, []);
 
+  const parseCards = (raw: string) =>
+    raw
+      .split(",")
+      .map((c) => c.trim())
+      .filter((c) => c.length === 10);
+
   const handleAdd = async () => {
     if (!newForm.firstName || !newForm.lastName) {
       toast.error("First name and last name are required");
       return;
     }
-    const newCards = newForm.cards
-      .split(",")
-      .map((c) => c.trim())
-      .filter((c) => c.length === 10);
     try {
-      const docRef = await addDoc(collection(db, "users"), {
+      await addDoc(collection(db, "users"), {
         firstName: newForm.firstName,
         lastName: newForm.lastName,
-        cards: newCards,
+        cards: parseCards(newForm.cards),
       });
-
-      // Link cards to new user
-      const batch = writeBatch(db);
-      newCards.forEach((c) => {
-        const ref = doc(db, "cards", c);
-        batch.update(ref, { linkedUserId: docRef.id });
-      });
-      await batch.commit();
-
-      toast.success("User added");
+      toast.success("User added. Card links will sync on next migration.");
       setNewForm({ firstName: "", lastName: "", cards: "" });
       setShowAdd(false);
     } catch (err: any) {
@@ -57,41 +50,13 @@ export function UsersPage() {
   };
 
   const handleUpdate = async (id: string) => {
-    const newCards = editForm.cards
-      .split(",")
-      .map((c) => c.trim())
-      .filter((c) => c.length === 10);
-
-    // Get old cards to unlink
-    const oldCards = users.find((u) => u.id === id)?.cards || [];
-
     try {
-      // Update user document
       await updateDoc(doc(db, "users", id), {
         firstName: editForm.firstName,
         lastName: editForm.lastName,
-        cards: newCards,
+        cards: parseCards(editForm.cards),
       });
-
-      // Update card links: remove old, add new
-      const batch = writeBatch(db);
-
-      // Unlink cards that no longer belong
-      oldCards.forEach((c) => {
-        if (!newCards.includes(c)) {
-          const ref = doc(db, "cards", c);
-          batch.update(ref, { linkedUserId: "" });
-        }
-      });
-
-      // Link new cards
-      newCards.forEach((c) => {
-        const ref = doc(db, "cards", c);
-        batch.update(ref, { linkedUserId: id });
-      });
-
-      await batch.commit();
-      toast.success("User updated");
+      toast.success("User updated. Card links will sync on next migration.");
       setEditing(null);
     } catch (err: any) {
       toast.error("Failed to update user: " + (err.message || String(err)));
@@ -101,21 +66,9 @@ export function UsersPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this user?")) return;
-    const user = users.find((u) => u.id === id);
-    const cards = user?.cards || [];
-
     try {
       await deleteDoc(doc(db, "users", id));
-
-      // Unlink all cards
-      const batch = writeBatch(db);
-      cards.forEach((c) => {
-        const ref = doc(db, "cards", c);
-        batch.update(ref, { linkedUserId: "" });
-      });
-      await batch.commit();
-
-      toast.success("User deleted");
+      toast.success("User deleted. Card links will sync on next migration.");
     } catch (err: any) {
       toast.error("Failed to delete user: " + (err.message || String(err)));
       console.error("Delete user error:", err);
@@ -127,7 +80,7 @@ export function UsersPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <span className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-primary/20 text-primary">
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+            <UsersIcon />
           </span>
           Users
         </h1>
@@ -273,5 +226,14 @@ export function UsersPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function UsersIcon() {
+  return (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
+    </svg>
   );
 }
