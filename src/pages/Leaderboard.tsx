@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { collection, doc, onSnapshot, query, orderBy, limit, getCountFromServer } from "firebase/firestore";
+import { collection, doc, onSnapshot, query, orderBy, limit, getAggregateFromServer, sum, count } from "firebase/firestore";
 import { db } from "../firebase";
 import { Trophy, Clock, Users, AlertTriangle, Info } from "lucide-react";
 import type { Card, User, SyncState } from "../types";
@@ -16,17 +16,22 @@ interface LeaderboardEntry {
 export function Leaderboard() {
   const [cards, setCards] = useState<Card[]>([]);
   const [totalCards, setTotalCards] = useState(0);
+  const [totalSpent, setTotalSpent] = useState(0);
   const [users, setUsers] = useState<Record<string, User>>({});
   const [syncState, setSyncState] = useState<SyncState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "cards"), orderBy("sum", "desc"), limit(250));
+    // Live listener on top 150 cards — efficient because backend only touches ~10 per sync
+    const q = query(collection(db, "cards"), orderBy("sum", "desc"), limit(150));
     const unsubCards = onSnapshot(
       q,
       (snapshot) => {
-        const data = snapshot.docs.map((d) => ({ cardNumber: d.id, ...d.data() }) as Card);
+        const data = snapshot.docs.map((d) => ({
+          cardNumber: d.id,
+          ...d.data(),
+        })) as Card[];
         setCards(data);
         setError(null);
         setLoading(false);
@@ -38,9 +43,16 @@ export function Leaderboard() {
       }
     );
 
-    getCountFromServer(collection(db, "cards"))
-      .then((snap) => setTotalCards(snap.data().count))
-      .catch((err) => console.error("Failed to count cards:", err));
+    // Aggregates for stats: zero document reads
+    getAggregateFromServer(collection(db, "cards"), {
+      totalSpent: sum("sum"),
+      totalCount: count(),
+    })
+      .then((snap) => {
+        setTotalSpent(snap.data().totalSpent || 0);
+        setTotalCards(snap.data().totalCount || 0);
+      })
+      .catch((err) => console.error("Aggregate error:", err));
 
     const unsubUsers = onSnapshot(
       collection(db, "users"),
@@ -57,7 +69,9 @@ export function Leaderboard() {
     const unsubState = onSnapshot(
       doc(db, "info", "state"),
       (d) => {
-        if (d.exists()) setSyncState(d.data() as SyncState);
+        if (d.exists()) {
+          setSyncState(d.data() as SyncState);
+        }
       },
       (err) => console.error("Firestore state error:", err)
     );
@@ -69,7 +83,7 @@ export function Leaderboard() {
     };
   }, []);
 
-  // Build ownership map: cardNumber -> {userId, name}
+  // Build ownership map from users collection
   const cardOwnerMap = useMemo(() => {
     const map: Record<string, { userId: string; name: string }> = {};
     Object.values(users).forEach((user) => {
@@ -121,11 +135,6 @@ export function Leaderboard() {
       .sort((a, b) => b.sum - a.sum)
       .slice(0, 100);
   }, [cards, cardOwnerMap, users]);
-
-  const totalSpent = useMemo(
-    () => cards.reduce((sum, c) => sum + c.sum, 0),
-    [cards]
-  );
 
   return (
     <div className="space-y-6">
