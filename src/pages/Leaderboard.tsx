@@ -125,7 +125,7 @@ export function Leaderboard() {
     <div className="space-y-6">
       {/* Stats row */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <StatCard icon={Trophy} label="Total Spent" value={`${totalSpent.toFixed(0)} kr`} />
+        <StatCard icon={Trophy} label="Total Spent" value={`${totalSpent.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} kr`} />
         <StatCard icon={Users} label="No. cards used" value={totalCards.toLocaleString()} />
         <StatCard icon={Clock} label="Last Sync" value={syncState?.lastSyncAt ? formatTime(syncState.lastSyncAt) : "Never"} />
       </div>
