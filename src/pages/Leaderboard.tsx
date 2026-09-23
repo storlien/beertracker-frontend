@@ -1,15 +1,8 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  collection,
-  doc,
-  onSnapshot,
-  query,
-  orderBy,
-  limit,
-} from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
-import { Trophy, Clock, Users, AlertTriangle, Info } from "lucide-react";
+import { Trophy, Clock, AlertTriangle, Info, Users } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -22,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Card as CardType, User, SyncState } from "../types";
+import type { SyncState } from "../types";
 
 interface LeaderboardEntry {
   id: string;
@@ -33,46 +26,38 @@ interface LeaderboardEntry {
 }
 
 export function Leaderboard() {
-  const [cards, setCards] = useState<CardType[]>([]);
-  const [users, setUsers] = useState<Record<string, User>>({});
+  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [syncState, setSyncState] = useState<SyncState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(
-      collection(db, "cards"),
-      orderBy("sum", "desc"),
-      limit(150)
-    );
-    const unsubCards = onSnapshot(
-      q,
-      (snapshot) => {
-        const data = snapshot.docs.map((d) => ({
-          cardNumber: d.id,
-          ...d.data(),
-        })) as CardType[];
-        setCards(data);
+    const unsubBoard = onSnapshot(
+      doc(db, "leaderboard", "top100"),
+      (d) => {
+        if (d.exists()) {
+          const data = d.data();
+          const rawEntries = data.entries || [];
+          // Ensure numbers are actually numbers (Firestore sometimes returns them differently)
+          const parsed: LeaderboardEntry[] = rawEntries.map((e: any) => ({
+            id: String(e.id || ""),
+            name: String(e.name || "Unknown"),
+            isUser: Boolean(e.isUser),
+            sum: typeof e.sum === "number" ? e.sum : parseFloat(e.sum) || 0,
+            cards: Array.isArray(e.cards) ? e.cards.map(String) : [],
+          }));
+          setEntries(parsed);
+        } else {
+          setEntries([]);
+        }
         setError(null);
         setLoading(false);
       },
       (err) => {
-        console.error("Firestore cards error:", err);
+        console.error("Firestore leaderboard error:", err);
         setError(err.message);
         setLoading(false);
       }
-    );
-
-    const unsubUsers = onSnapshot(
-      collection(db, "users"),
-      (snapshot) => {
-        const map: Record<string, User> = {};
-        snapshot.docs.forEach((d) => {
-          map[d.id] = { id: d.id, ...d.data() } as User;
-        });
-        setUsers(map);
-      },
-      (err) => console.error("Firestore users error:", err)
     );
 
     const unsubState = onSnapshot(
@@ -86,73 +71,16 @@ export function Leaderboard() {
     );
 
     return () => {
-      unsubCards();
-      unsubUsers();
+      unsubBoard();
       unsubState();
     };
   }, []);
-
-  const cardOwnerMap = useMemo(() => {
-    const map: Record<string, { userId: string; name: string }> = {};
-    Object.values(users).forEach((user) => {
-      user.cards?.forEach((cardNum) => {
-        map[cardNum] = {
-          userId: user.id,
-          name: `${user.firstName} ${user.lastName}`,
-        };
-      });
-    });
-    return map;
-  }, [users]);
-
-  const entries = useMemo<LeaderboardEntry[]>(() => {
-    const userSums: Record<string, { sum: number; cards: string[] }> = {};
-    const unlinked: LeaderboardEntry[] = [];
-
-    for (const card of cards) {
-      const owner = cardOwnerMap[card.cardNumber];
-      if (owner) {
-        if (!userSums[owner.userId]) {
-          userSums[owner.userId] = { sum: 0, cards: [] };
-        }
-        userSums[owner.userId].sum += card.sum;
-        userSums[owner.userId].cards.push(card.cardNumber);
-      } else {
-        unlinked.push({
-          id: card.cardNumber,
-          name: "Unknown",
-          isUser: false,
-          sum: card.sum,
-          cards: [card.cardNumber],
-        });
-      }
-    }
-
-    const userEntries: LeaderboardEntry[] = Object.entries(userSums).map(
-      ([userId, data]) => {
-        const user = users[userId];
-        return {
-          id: userId,
-          name: user
-            ? `${user.firstName} ${user.lastName}`
-            : "Unknown",
-          isUser: true,
-          sum: data.sum,
-          cards: data.cards,
-        };
-      }
-    );
-
-    return [...userEntries, ...unlinked]
-      .sort((a, b) => b.sum - a.sum)
-      .slice(0, 100);
-  }, [cards, cardOwnerMap, users]);
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <StatCard icon={Trophy} label="Total Spent" value="—" />
-        <StatCard icon={Users} label="No. cards used" value="—" />
+        <StatCard icon={Users} label="Total Cards" value="—" />
         <StatCard
           icon={Clock}
           label="Last Sync"
@@ -179,7 +107,8 @@ export function Leaderboard() {
             {error}
             <p className="mt-2">
               This usually means Firestore security rules need to be updated. Go
-              to Firebase Console → Firestore Database → Rules and allow reads.
+              to Firebase Console → Firestore Database → Rules and allow reads
+              on the <code>leaderboard</code> collection.
             </p>
           </AlertDescription>
         </Alert>
@@ -206,7 +135,7 @@ export function Leaderboard() {
             </div>
           ) : entries.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No cards yet
+              No leaderboard data yet
             </div>
           ) : (
             <div className="overflow-x-auto">
