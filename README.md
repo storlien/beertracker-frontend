@@ -12,7 +12,7 @@ React 18 + TypeScript + Vite + Tailwind CSS frontend for the BeerTracker card tr
 - Lucide icons
 
 ## Pages
-- **/** — Leaderboard (top 50 cards by total spent, real-time)
+- **/** — Leaderboard (top 100 cards by total spent, real-time)
 - **/users** — User management (CRUD for admins)
 - **/cards/:cardId** — Card detail view
 - **/admin** — Admin dashboard (sync status, stats)
@@ -20,22 +20,21 @@ React 18 + TypeScript + Vite + Tailwind CSS frontend for the BeerTracker card tr
 
 ## Setup
 
-### 1. Configure Firebase
-Edit `src/firebase.ts` and replace the placeholder config with your actual Firebase project config (from Firebase Console → Project Settings → General → Your apps → SDK config):
-```javascript
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "beertracker-f62bb.firebaseapp.com",
-  projectId: "beertracker-f62bb",
-  // ...
-};
+### 1. Environment variables
+Copy `.env.example` to `.env` and fill in your Firebase API key:
+
+```bash
+cp .env.example .env
 ```
 
-### 2. Install & run dev server
+Get the `VITE_FIREBASE_API_KEY` value from Firebase Console → Project Settings → General → Your apps → SDK config.
+
+### 2. Local dev server
 ```bash
 npm install
 npm run dev
 ```
+The dev server runs at **http://localhost:5173**.
 
 ### 3. Production build
 ```bash
@@ -43,14 +42,23 @@ npm run build
 ```
 
 ## Docker
+
+Build and start the container (uses port **8080**):
+
 ```bash
-docker build -t beertracker-frontend .
-docker run -p 8080:80 beertracker-frontend
+docker compose up -d --build
 ```
 
-Or with docker-compose:
+Access the app at **http://localhost:8080**.
+
+To stop:
 ```bash
-docker-compose up -d
+docker compose down
+```
+
+To view logs:
+```bash
+docker compose logs -f
 ```
 
 ## Features
@@ -59,6 +67,3 @@ docker-compose up -d
 - Real-time Firestore listeners for cards, users, sync state
 - Admin panel with protected routes
 - Toast notifications via Sonner
-
-## Environment Variables
-Unlike the backend, this frontend embeds Firebase config directly. For a real deployment, copy `.env.example` to `.env`.
