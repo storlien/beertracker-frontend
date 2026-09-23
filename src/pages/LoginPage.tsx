@@ -4,6 +4,10 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase";
 import { LogIn, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 export function LoginPage() {
   const [email, setEmail] = useState("");
@@ -17,7 +21,7 @@ export function LoginPage() {
       toast.error("Please fill in all fields");
       return;
     }
-    
+
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
@@ -32,63 +36,58 @@ export function LoginPage() {
 
   return (
     <div className="max-w-md mx-auto mt-10">
-      <div className="bg-surface rounded-lg border border-border p-6 space-y-6">
-        <h1 className="text-2xl font-bold text-center">Login</h1>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-center">Login</CardTitle>
+          <CardDescription className="text-center">
+            Sign in to access the admin panel
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Email</label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@example.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Password</label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+            <Button type="submit" disabled={loading} className="w-full">
+              <LogIn className="w-4 h-4 mr-2" />
+              {loading ? "Logging in..." : "Login with Email"}
+            </Button>
+          </form>
 
-        {/* Admin Login Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@example.com"
-              className="w-full px-3 py-2 bg-background border border-border rounded-md text-text placeholder:text-text-muted focus:outline-none focus:border-primary"
-            />
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <Separator />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">or</span>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full px-3 py-2 bg-background border border-border rounded-md text-text placeholder:text-text-muted focus:outline-none focus:border-primary"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white rounded-md transition-colors"
-          >
-            <LogIn className="w-4 h-4" />
-            {loading ? "Logging in..." : "Login with Email"}
-          </button>
-        </form>
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-surface text-text-muted">or</span>
-          </div>
-        </div>
+          <Button variant="outline" disabled className="w-full cursor-not-allowed opacity-50">
+            <ExternalLink className="w-4 h-4 mr-2" />
+            Login with Abakus (coming soon)
+          </Button>
 
-        {/* Abakus OAuth Placeholder */}
-        <button
-          disabled
-          className="w-full flex items-center justify-center gap-2 py-2 bg-surface-hover border border-border cursor-not-allowed text-text-muted rounded-md"
-        >
-          <ExternalLink className="w-4 h-4" />
-          Login with Abakus (coming soon)
-        </button>
-
-        <p className="text-sm text-text-muted text-center">
-          Only admin access is available for testing.
-        </p>
-      </div>
+          <p className="text-sm text-muted-foreground text-center mt-4">
+            Only admin access is available for testing.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

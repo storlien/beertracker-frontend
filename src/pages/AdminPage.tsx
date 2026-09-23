@@ -2,11 +2,20 @@ import { useEffect, useState } from "react";
 import { doc, onSnapshot, collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import { Shield, Clock, Users, CreditCard } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableRow,
+} from "@/components/ui/table";
 import type { SyncState } from "../types";
 
 export function AdminPage() {
   const [syncState, setSyncState] = useState<SyncState | null>(null);
   const [stats, setStats] = useState({ users: 0, unlinked: 0, avgPerUser: 0 });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "info", "state"), (d) => {
@@ -34,6 +43,7 @@ export function AdminPage() {
         unlinked,
         avgPerUser: userCount > 0 ? totalLinked / userCount : 0,
       });
+      setLoading(false);
     }
     fetchStats();
 
@@ -50,49 +60,92 @@ export function AdminPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <StatCard icon={Users} label="Users" value={stats.users.toString()} />
-        <StatCard icon={CreditCard} label="Unlinked Cards" value={stats.unlinked.toLocaleString()} />
-        <StatCard icon={Shield} label="Avg Spent per User" value={`${stats.avgPerUser.toFixed(0)} kr`} />
+        <StatCard
+          icon={CreditCard}
+          label="Unlinked Cards"
+          value={stats.unlinked.toLocaleString()}
+        />
+        <StatCard
+          icon={Shield}
+          label="Avg Spent per User"
+          value={`${stats.avgPerUser.toFixed(0)} kr`}
+        />
       </div>
 
       {/* Sync Status */}
-      <div className="bg-surface rounded-lg border border-border p-6 space-y-4">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Clock className="w-5 h-5 text-primary" />
-          Sync Status
-        </h2>
-
-        {syncState ? (
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-text-muted">Last Purchase Hash</span>
-              <span className="font-mono">{syncState.lastPurchaseHash?.slice(0, 40)}...</span>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="w-5 h-5 text-primary" />
+            Sync Status
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-4 w-3/4" />
             </div>
-            <div className="flex justify-between">
-              <span className="text-text-muted">Last Sync</span>
-              <span>{syncState.lastSyncAt ? formatDate(syncState.lastSyncAt) : "Never"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-text-muted">Total Purchases Synced</span>
-              <span>{syncState.totalPurchasesSynced?.toLocaleString() || "0"}</span>
-            </div>
-          </div>
-        ) : (
-          <p className="text-text-muted">No sync state found</p>
-        )}
-      </div>
+          ) : syncState ? (
+            <Table>
+              <TableBody>
+                <TableRow>
+                  <TableCell className="text-muted-foreground">
+                    Last Purchase Hash
+                  </TableCell>
+                  <TableCell className="font-mono text-right">
+                    {syncState.lastPurchaseHash?.slice(0, 40)}...
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="text-muted-foreground">
+                    Last Sync
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {syncState.lastSyncAt
+                      ? formatDate(syncState.lastSyncAt)
+                      : "Never"}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="text-muted-foreground">
+                    Total Purchases Synced
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {syncState.totalPurchasesSynced?.toLocaleString() || "0"}
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-muted-foreground">No sync state found</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
-function StatCard({ icon: Icon, label, value }: { icon: typeof Shield; label: string; value: string }) {
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Shield;
+  label: string;
+  value: string;
+}) {
   return (
-    <div className="bg-surface rounded-lg border border-border p-4">
-      <div className="flex items-center gap-2 text-text-muted mb-1">
-        <Icon className="w-4 h-4" />
-        <span className="text-xs uppercase tracking-wider">{label}</span>
-      </div>
-      <div className="text-2xl font-bold">{value}</div>
-    </div>
+    <Card>
+      <CardContent className="pt-6">
+        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+          <Icon className="w-4 h-4" />
+          <span className="text-xs uppercase tracking-wider">{label}</span>
+        </div>
+        <div className="text-2xl font-bold">{value}</div>
+      </CardContent>
+    </Card>
   );
 }
 

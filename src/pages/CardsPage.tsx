@@ -4,6 +4,9 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { CreditCard, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function CardsPage() {
   const [search, setSearch] = useState("");
@@ -39,36 +42,39 @@ export function CardsPage() {
         Card Lookup
       </h1>
 
-      <div className="bg-surface rounded-lg border border-border p-6 space-y-4">
-        <p className="text-sm text-text-muted">
-          Enter a 10-digit card number to view its details.
-        </p>
+      <Card>
+        <CardHeader>
+          <CardTitle>Find a Card</CardTitle>
+          <CardDescription>
+            Enter a 10-digit card number to view its details.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="e.g. 1234567890"
+              maxLength={10}
+              className="flex-1 font-mono"
+            />
+            <Button
+              onClick={handleSearch}
+              disabled={isChecking}
+            >
+              <ArrowRight className="w-5 h-5" />
+            </Button>
+          </div>
 
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="e.g. 1234567890"
-            maxLength={10}
-            className="flex-1 px-4 py-3 bg-background border border-border rounded-md text-text placeholder:text-text-muted focus:outline-none focus:border-primary font-mono"
-          />
-          <button
-            onClick={handleSearch}
-            disabled={isChecking}
-            className="px-4 py-3 bg-primary hover:bg-primary-hover text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ArrowRight className="w-5 h-5" />
-          </button>
-        </div>
-
-        {search.length > 0 && search.length !== 10 && (
-          <p className="text-xs text-text-muted">
-            Card number must be exactly 10 digits.
-          </p>
-        )}
-      </div>
+          {search.length > 0 && search.length !== 10 && (
+            <p className="text-xs text-muted-foreground">
+              Card number must be exactly 10 digits.
+            </p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

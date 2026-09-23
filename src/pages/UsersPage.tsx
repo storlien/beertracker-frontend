@@ -1,17 +1,39 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  onSnapshot,
+} from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../auth/AuthProvider";
-import { Plus, Trash2, Edit3, CreditCard } from "lucide-react";
+import { Plus, Trash2, Edit3, CreditCard, Users } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { User } from "../types";
 
 export function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const { isAdmin } = useAuth();
   const [editing, setEditing] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ firstName: "", lastName: "", cards: "" });
+  const [editForm, setEditForm] = useState({
+    firstName: "",
+    lastName: "",
+    cards: "",
+  });
   const [showAdd, setShowAdd] = useState(false);
   const [newForm, setNewForm] = useState({ firstName: "", lastName: "", cards: "" });
   const navigate = useNavigate();
@@ -80,122 +102,147 @@ export function UsersPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <span className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-primary/20 text-primary">
-            <UsersIcon />
+            <Users className="w-5 h-5" />
           </span>
           Users
         </h1>
         {isAdmin && (
-          <button
-            onClick={() => setShowAdd(!showAdd)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-md transition-colors"
-          >
-            <Plus className="w-4 h-4" />
+          <Button onClick={() => setShowAdd(!showAdd)}>
+            <Plus className="w-4 h-4 mr-2" />
             Add User
-          </button>
+          </Button>
         )}
       </div>
 
       {showAdd && (
-        <div className="bg-surface rounded-lg border border-border p-4 space-y-3">
-          <h3 className="font-medium">New User</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <input
-              placeholder="First name"
-              value={newForm.firstName}
-              onChange={(e) => setNewForm({ ...newForm, firstName: e.target.value })}
-              className="px-3 py-2 bg-background border border-border rounded-md text-text placeholder:text-text-muted focus:outline-none focus:border-primary"
-            />
-            <input
-              placeholder="Last name"
-              value={newForm.lastName}
-              onChange={(e) => setNewForm({ ...newForm, lastName: e.target.value })}
-              className="px-3 py-2 bg-background border border-border rounded-md text-text placeholder:text-text-muted focus:outline-none focus:border-primary"
-            />
-            <input
-              placeholder="Cards (comma-separated 10-digit)"
-              value={newForm.cards}
-              onChange={(e) => setNewForm({ ...newForm, cards: e.target.value })}
-              className="px-3 py-2 bg-background border border-border rounded-md text-text placeholder:text-text-muted focus:outline-none focus:border-primary"
-            />
-          </div>
-          <button onClick={handleAdd} className="px-4 py-2 bg-primary text-white rounded-md">Save</button>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>New User</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <Input
+                placeholder="First name"
+                value={newForm.firstName}
+                onChange={(e) =>
+                  setNewForm({ ...newForm, firstName: e.target.value })
+                }
+              />
+              <Input
+                placeholder="Last name"
+                value={newForm.lastName}
+                onChange={(e) =>
+                  setNewForm({ ...newForm, lastName: e.target.value })
+                }
+              />
+              <Input
+                placeholder="Cards (comma-separated 10-digit)"
+                value={newForm.cards}
+                onChange={(e) =>
+                  setNewForm({ ...newForm, cards: e.target.value })
+                }
+              />
+            </div>
+            <Button onClick={handleAdd}>Save</Button>
+          </CardContent>
+        </Card>
       )}
 
-      <div className="bg-surface rounded-lg border border-border overflow-hidden">
+      <Card>
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border text-left text-sm text-text-muted">
-                <th className="px-4 py-2">Name</th>
-                <th className="px-4 py-2">Cards</th>
-                <th className="px-4 py-2 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Cards</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {users.map((user) => (
-                <tr key={user.id} className="border-b border-border/50 hover:bg-surface-hover">
-                  <td className="px-4 py-3 font-medium">
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium">
                     {editing === user.id ? (
                       <div className="flex gap-2">
-                        <input
+                        <Input
                           value={editForm.firstName}
-                          onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                          className="w-24 px-2 py-1 bg-background border border-border rounded text-sm"
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              firstName: e.target.value,
+                            })
+                          }
+                          className="w-24 h-8"
                         />
-                        <input
+                        <Input
                           value={editForm.lastName}
-                          onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                          className="w-24 px-2 py-1 bg-background border border-border rounded text-sm"
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              lastName: e.target.value,
+                            })
+                          }
+                          className="w-24 h-8"
                         />
                       </div>
                     ) : (
                       `${user.firstName} ${user.lastName}`
                     )}
-                  </td>
-                  <td className="px-4 py-3">
+                  </TableCell>
+                  <TableCell>
                     {editing === user.id ? (
-                      <input
+                      <Input
                         value={editForm.cards}
-                        onChange={(e) => setEditForm({ ...editForm, cards: e.target.value })}
-                        className="w-full px-2 py-1 bg-background border border-border rounded text-sm font-mono"
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            cards: e.target.value,
+                          })
+                        }
+                        className="w-full h-8 font-mono"
                       />
                     ) : (
                       <div className="flex flex-wrap gap-1">
                         {user.cards.map((c) => (
-                          <button
+                          <Button
                             key={c}
+                            variant="outline"
+                            size="sm"
                             onClick={() => navigate(`/cards/${c}`)}
-                            className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-surface-hover border border-border rounded hover:border-primary transition-colors"
+                            className="h-7 px-2 text-xs font-mono"
                           >
-                            <CreditCard className="w-3 h-3" />
+                            <CreditCard className="w-3 h-3 mr-1" />
                             {c.slice(0, 6)}****
-                          </button>
+                          </Button>
                         ))}
                       </div>
                     )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
+                  </TableCell>
+                  <TableCell className="text-right">
                     {isAdmin && (
                       <div className="flex justify-end gap-2">
                         {editing === user.id ? (
                           <>
-                            <button
+                            <Button
+                              size="sm"
                               onClick={() => handleUpdate(user.id)}
-                              className="p-1 bg-primary/20 text-primary rounded hover:bg-primary/30"
                             >
                               Save
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => setEditing(null)}
-                              className="p-1 text-text-muted hover:text-text"
                             >
                               Cancel
-                            </button>
+                            </Button>
                           </>
                         ) : (
                           <>
-                            <button
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
                               onClick={() => {
                                 setEditing(user.id);
                                 setEditForm({
@@ -204,36 +251,28 @@ export function UsersPage() {
                                   cards: user.cards.join(", "),
                                 });
                               }}
-                              className="p-1 text-text-muted hover:text-primary"
                             >
                               <Edit3 className="w-4 h-4" />
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
                               onClick={() => handleDelete(user.id)}
-                              className="p-1 text-text-muted hover:text-danger"
                             >
                               <Trash2 className="w-4 h-4" />
-                            </button>
+                            </Button>
                           </>
                         )}
                       </div>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
-      </div>
+      </Card>
     </div>
-  );
-}
-
-function UsersIcon() {
-  return (
-    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="8" r="4" />
-      <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
-    </svg>
   );
 }

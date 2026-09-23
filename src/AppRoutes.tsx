@@ -6,10 +6,16 @@ import { CardsPage } from "./pages/CardsPage";
 import { CardDetailPage } from "./pages/CardDetailPage";
 import { AdminPage } from "./pages/AdminPage";
 import { LoginPage } from "./pages/LoginPage";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user, isAdmin, loading } = useAuth();
-  if (loading) return <div className="text-center py-20">Loading...</div>;
+  if (loading) return (
+    <div className="space-y-4">
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-32 w-full" />
+    </div>
+  );
   if (!user) return <Navigate to="/login" replace />;
   if (!isAdmin) return <Navigate to="/" replace />;
   return <>{children}</>;

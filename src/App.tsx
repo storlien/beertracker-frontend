@@ -7,7 +7,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <div className="min-h-screen bg-background text-text">
+        <div className="min-h-screen bg-background text-foreground">
           <Navbar />
           <main className="max-w-6xl mx-auto px-4 py-6">
             <AppRoutes />
