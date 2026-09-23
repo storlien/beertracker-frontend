@@ -1,31 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
-import { Search, CreditCard, ArrowRight } from "lucide-react";
+import { CreditCard, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
-import type { Card } from "../types";
 
 export function CardsPage() {
   const [search, setSearch] = useState("");
-  const [cards, setCards] = useState<Card[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isChecking, setIsChecking] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    setLoading(false);
-    // We don't load all cards here; only search when typing
-  }, []);
 
   const handleSearch = async () => {
     const trimmed = search.trim();
-    if (!trimmed) return;
-
-    if (trimmed.length === 10 && /^\d+$/.test(trimmed)) {
-      navigate(`/cards/${trimmed}`);
-      return;
-    }
-
+    if (!trimmed || trimmed.length !== 10 || !/^\d+$/.test(trimmed)) return;
+    setIsChecking(true);
     try {
       const d = await getDoc(doc(db, "cards", trimmed));
       if (d.exists()) {
@@ -35,6 +23,8 @@ export function CardsPage() {
       }
     } catch {
       toast.error("Error looking up card");
+    } finally {
+      setIsChecking(false);
     }
   };
 
@@ -66,7 +56,8 @@ export function CardsPage() {
           />
           <button
             onClick={handleSearch}
-            className="px-4 py-3 bg-primary hover:bg-primary-hover text-white rounded-md transition-colors"
+            disabled={isChecking}
+            className="px-4 py-3 bg-primary hover:bg-primary-hover text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ArrowRight className="w-5 h-5" />
           </button>

@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { collection, doc, onSnapshot, query, orderBy, limit, getAggregateFromServer, sum, count } from "firebase/firestore";
+import { collection, doc, onSnapshot, query, orderBy, limit } from "firebase/firestore";
 import { db } from "../firebase";
 import { Trophy, Clock, Users, AlertTriangle, Info } from "lucide-react";
 import type { Card, User, SyncState } from "../types";
@@ -15,8 +15,6 @@ interface LeaderboardEntry {
 
 export function Leaderboard() {
   const [cards, setCards] = useState<Card[]>([]);
-  const [totalCards, setTotalCards] = useState(0);
-  const [totalSpent, setTotalSpent] = useState(0);
   const [users, setUsers] = useState<Record<string, User>>({});
   const [syncState, setSyncState] = useState<SyncState | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,17 +40,6 @@ export function Leaderboard() {
         setLoading(false);
       }
     );
-
-    // Aggregates for stats: zero document reads
-    getAggregateFromServer(collection(db, "cards"), {
-      totalSpent: sum("sum"),
-      totalCount: count(),
-    })
-      .then((snap) => {
-        setTotalSpent(snap.data().totalSpent || 0);
-        setTotalCards(snap.data().totalCount || 0);
-      })
-      .catch((err) => console.error("Aggregate error:", err));
 
     const unsubUsers = onSnapshot(
       collection(db, "users"),
@@ -139,8 +126,8 @@ export function Leaderboard() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <StatCard icon={Trophy} label="Total Spent" value={`${totalSpent.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} kr`} />
-        <StatCard icon={Users} label="No. cards used" value={totalCards.toLocaleString()} />
+        <StatCard icon={Trophy} label="Total Spent" value="—" />
+        <StatCard icon={Users} label="No. cards used" value="—" />
         <StatCard icon={Clock} label="Last Sync" value={syncState?.lastSyncAt ? formatTime(syncState.lastSyncAt) : "Never"} />
       </div>
 
