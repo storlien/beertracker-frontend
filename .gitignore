@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 .env
 .env.local
+
+# Playwright MCP runtime artifacts
+.playwright-mcp/
