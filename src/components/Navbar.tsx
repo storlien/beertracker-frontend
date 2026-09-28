@@ -47,9 +47,9 @@ export function Navbar() {
                 key={item.path}
                 variant={location.pathname === item.path ? "secondary" : "ghost"}
                 size="sm"
-                onClick={() => window.location.href = item.path}
+                asChild
               >
-                {item.label}
+                <Link to={item.path}>{item.label}</Link>
               </Button>
             ))}
           </div>
@@ -64,9 +64,11 @@ export function Navbar() {
                 </Button>
               </div>
             ) : (
-              <Button size="sm" onClick={() => window.location.href = '/login'}>
-                <LogIn className="w-4 h-4 mr-1" />
-                Login
+              <Button size="sm" asChild>
+                <Link to="/login">
+                  <LogIn className="w-4 h-4 mr-1" />
+                  Login
+                </Link>
               </Button>
             )}
           </div>
