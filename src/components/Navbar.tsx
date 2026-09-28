@@ -5,7 +5,8 @@ import { useState } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "cn";
 
 export function Navbar() {
   const { user, isAdmin } = useAuth();
@@ -43,14 +44,18 @@ export function Navbar() {
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-1">
             {navItems.map((item) => (
-              <Button
+              <Link
                 key={item.path}
-                variant={location.pathname === item.path ? "secondary" : "ghost"}
-                size="sm"
-                asChild
+                to={item.path}
+                className={cn(
+                  buttonVariants({
+                    variant: location.pathname === item.path ? "secondary" : "ghost",
+                    size: "sm",
+                  })
+                )}
               >
-                <Link to={item.path}>{item.label}</Link>
-              </Button>
+                {item.label}
+              </Link>
             ))}
           </div>
 
@@ -64,12 +69,13 @@ export function Navbar() {
                 </Button>
               </div>
             ) : (
-              <Button size="sm" asChild>
-                <Link to="/login">
-                  <LogIn className="w-4 h-4 mr-1" />
-                  Login
-                </Link>
-              </Button>
+              <Link
+                to="/login"
+                className={cn(buttonVariants({ size: "sm" }))}
+              >
+                <LogIn className="w-4 h-4 mr-1" />
+                Login
+              </Link>
             )}
           </div>
 
