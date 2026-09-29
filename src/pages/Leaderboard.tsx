@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
-import { Trophy, Clock, AlertTriangle, Info, Users } from "lucide-react";
+import {
+  Trophy,
+  Clock,
+  AlertTriangle,
+  Info,
+  Users,
+} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -15,18 +21,18 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { SyncState } from "../types";
+import { Button } from "@/components/ui/button";
+import type { SyncState, LeaderboardEntry } from "../types";
 
-interface LeaderboardEntry {
-  id: string;
-  name: string;
-  isUser: boolean;
-  sum: number;
-  cards: string[];
-}
+type Tab = "alltime" | "daily";
 
 export function Leaderboard() {
-  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [activeTab, setActiveTab] = useState<Tab>("alltime");
+
+  const [allTimeEntries, setAllTimeEntries] = useState<LeaderboardEntry[]>([]);
+  const [dailyEntries, setDailyEntries] = useState<LeaderboardEntry[]>([]);
+  const [barDay, setBarDay] = useState<string | null>(null);
+
   const [syncState, setSyncState] = useState<SyncState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,23 +44,37 @@ export function Leaderboard() {
         if (d.exists()) {
           const data = d.data();
           const rawEntries = data.entries || [];
-          // Ensure numbers are actually numbers (Firestore sometimes returns them differently)
-          const parsed: LeaderboardEntry[] = rawEntries.map((e: any) => ({
-            id: String(e.id || ""),
-            name: String(e.name || "Unknown"),
-            isUser: Boolean(e.isUser),
-            sum: typeof e.sum === "number" ? e.sum : parseFloat(e.sum) || 0,
-            cards: Array.isArray(e.cards) ? e.cards.map(String) : [],
-          }));
-          setEntries(parsed);
+          setAllTimeEntries(parseEntries(rawEntries));
         } else {
-          setEntries([]);
+          setAllTimeEntries([]);
         }
         setError(null);
         setLoading(false);
       },
       (err) => {
         console.error("Firestore leaderboard error:", err);
+        setError(err.message);
+        setLoading(false);
+      }
+    );
+
+    const unsubDaily = onSnapshot(
+      doc(db, "leaderboard", "daily"),
+      (d) => {
+        if (d.exists()) {
+          const data = d.data();
+          setBarDay(data.barDay || null);
+          const rawEntries = data.entries || [];
+          setDailyEntries(parseEntries(rawEntries));
+        } else {
+          setBarDay(null);
+          setDailyEntries([]);
+        }
+        setError(null);
+        setLoading(false);
+      },
+      (err) => {
+        console.error("Firestore daily leaderboard error:", err);
         setError(err.message);
         setLoading(false);
       }
@@ -72,9 +92,14 @@ export function Leaderboard() {
 
     return () => {
       unsubBoard();
+      unsubDaily();
       unsubState();
     };
   }, []);
+
+  const entries = activeTab === "alltime" ? allTimeEntries : dailyEntries;
+  const isDaily = activeTab === "daily";
+  const tabLabel = isDaily ? "Today" : "Top 100";
 
   return (
     <div className="space-y-6">
@@ -116,13 +141,35 @@ export function Leaderboard() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2">
               <Trophy className="w-5 h-5 text-primary" />
-              Leaderboard
-            </CardTitle>
-            <span className="text-sm text-muted-foreground">Top 100</span>
+              <CardTitle>Leaderboard</CardTitle>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant={activeTab === "alltime" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setActiveTab("alltime")}
+              >
+                All Time
+              </Button>
+              <Button
+                variant={activeTab === "daily" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setActiveTab("daily")}
+              >
+                Today
+              </Button>
+            </div>
           </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            {isDaily
+              ? barDay
+                ? `Showing data for ${formatBarDay(barDay)}`
+                : "No daily data yet"
+              : tabLabel}
+          </p>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -135,7 +182,9 @@ export function Leaderboard() {
             </div>
           ) : entries.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No leaderboard data yet
+              {isDaily
+                ? "No activity today yet. The daily leaderboard resets when purchases start on a new day."
+                : "No leaderboard data yet"}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -154,28 +203,7 @@ export function Leaderboard() {
                     return (
                       <TableRow key={entry.id}>
                         <TableCell>
-                          <Badge
-                            variant={
-                              rank === 1
-                                ? "default"
-                                : rank === 2
-                                  ? "secondary"
-                                  : rank === 3
-                                    ? "outline"
-                                    : "secondary"
-                            }
-                            className={
-                              rank === 1
-                                ? "bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/20"
-                                : rank === 2
-                                  ? "bg-slate-400/20 text-slate-300 hover:bg-slate-400/20"
-                                  : rank === 3
-                                    ? "bg-amber-600/20 text-amber-500 hover:bg-amber-600/20"
-                                    : "bg-transparent"
-                            }
-                          >
-                            {rank}
-                          </Badge>
+                          <RankBadge rank={rank} />
                         </TableCell>
                         <TableCell>
                           <span
@@ -219,6 +247,33 @@ export function Leaderboard() {
   );
 }
 
+function RankBadge({ rank }: { rank: number }) {
+  return (
+    <Badge
+      variant={
+        rank === 1
+          ? "default"
+          : rank === 2
+            ? "secondary"
+            : rank === 3
+              ? "outline"
+              : "secondary"
+      }
+      className={
+        rank === 1
+          ? "bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/20"
+          : rank === 2
+            ? "bg-slate-400/20 text-slate-300 hover:bg-slate-400/20"
+            : rank === 3
+              ? "bg-amber-600/20 text-amber-500 hover:bg-amber-600/20"
+              : "bg-transparent"
+      }
+    >
+      {rank}
+    </Badge>
+  );
+}
+
 function StatCard({
   icon: Icon,
   label,
@@ -255,4 +310,26 @@ function formatTime(ts: any) {
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return date.toLocaleDateString("no-NO");
+}
+
+function formatBarDay(barDay: string): string {
+  // barDay is YYYY-MM-DD
+  const [year, month, day] = barDay.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString("no-NO", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+function parseEntries(raw: any[]): LeaderboardEntry[] {
+  return raw.map((e: any) => ({
+    id: String(e.id || ""),
+    name: String(e.name || "Unknown"),
+    isUser: Boolean(e.isUser),
+    sum: typeof e.sum === "number" ? e.sum : parseFloat(e.sum) || 0,
+    cards: Array.isArray(e.cards) ? e.cards.map(String) : [],
+  }));
 }

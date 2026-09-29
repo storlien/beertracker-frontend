@@ -110,10 +110,10 @@ export function AdminPage() {
                 </TableRow>
                 <TableRow>
                   <TableCell className="text-muted-foreground">
-                    Total Purchases Synced
+                    Total Pages Synced
                   </TableCell>
                   <TableCell className="text-right">
-                    {syncState.totalPurchasesSynced?.toLocaleString() || "0"}
+                    {syncState.totalPagesSynced?.toLocaleString() || "0"}
                   </TableCell>
                 </TableRow>
               </TableBody>

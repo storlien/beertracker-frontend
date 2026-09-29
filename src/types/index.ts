@@ -16,7 +16,21 @@ export interface User {
 export interface SyncState {
   lastPurchaseHash: string;
   lastSyncAt?: Date;
-  totalPurchasesSynced?: number;
+  totalPagesSynced?: number;
+}
+
+export interface LeaderboardEntry {
+  id: string;
+  name: string;
+  isUser: boolean;
+  sum: number;
+  cards: string[];
+}
+
+export interface DailyLeaderboardDoc {
+  barDay: string;
+  entries: LeaderboardEntry[];
+  updatedAt?: Date;
 }
 
 export interface AuthState {
