@@ -59,7 +59,7 @@ export function AdminPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <StatCard icon={Users} label="Users" value={stats.users.toString()} />
+        <StatCard icon={Users} label="Registered Users" value={stats.users.toString()} />
         <StatCard
           icon={CreditCard}
           label="Unlinked Cards"
@@ -67,7 +67,7 @@ export function AdminPage() {
         />
         <StatCard
           icon={Shield}
-          label="Avg Spent per User"
+          label="Avg spent per registered user"
           value={`${stats.avgPerUser.toFixed(0)} kr`}
         />
       </div>
