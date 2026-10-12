@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import {
   Trophy,
@@ -37,8 +37,35 @@ export function Leaderboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [totalSpent, setTotalSpent] = useState<number>(0);
+  const [totalCards, setTotalCards] = useState<number>(0);
+
   useEffect(() => {
-    const unsubBoard = onSnapshot(
+    let unsubBoard: (() => void) | undefined;
+    let unsubDaily: (() => void) | undefined;
+    let unsubState: (() => void) | undefined;
+
+    async function fetchTotals() {
+      try {
+        const snap = await getDocs(collection(db, "cards"));
+        let spent = 0;
+        let cardCount = 0;
+        snap.forEach((d) => {
+          const data = d.data();
+          spent += typeof data.sum === "number" ? data.sum : parseFloat(data.sum) || 0;
+          cardCount++;
+        });
+        setTotalSpent(spent);
+        setTotalCards(cardCount);
+      } catch (err: any) {
+        console.error("Firestore cards error:", err);
+        // Don't override leaderboard-specific errors
+        if (!error) setError(err.message);
+      }
+    }
+    fetchTotals();
+
+    unsubBoard = onSnapshot(
       doc(db, "leaderboard", "top100"),
       (d) => {
         if (d.exists()) {
@@ -58,7 +85,7 @@ export function Leaderboard() {
       }
     );
 
-    const unsubDaily = onSnapshot(
+    unsubDaily = onSnapshot(
       doc(db, "leaderboard", "daily"),
       (d) => {
         if (d.exists()) {
@@ -80,7 +107,7 @@ export function Leaderboard() {
       }
     );
 
-    const unsubState = onSnapshot(
+    unsubState = onSnapshot(
       doc(db, "info", "state"),
       (d) => {
         if (d.exists()) {
@@ -91,9 +118,9 @@ export function Leaderboard() {
     );
 
     return () => {
-      unsubBoard();
-      unsubDaily();
-      unsubState();
+      unsubBoard?.();
+      unsubDaily?.();
+      unsubState?.();
     };
   }, []);
 
@@ -104,8 +131,8 @@ export function Leaderboard() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <StatCard icon={Trophy} label="Total Spent" value="—" />
-        <StatCard icon={Users} label="Total Cards" value="—" />
+        <StatCard icon={Trophy} label="Total Spent" value={`${totalSpent.toFixed(0)} kr`} />
+        <StatCard icon={Users} label="Total Cards" value={`${totalCards.toLocaleString()}`} />
         <StatCard
           icon={Clock}
           label="Last Sync"
