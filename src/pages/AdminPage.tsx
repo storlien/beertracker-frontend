@@ -59,11 +59,11 @@ export function AdminPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <StatCard icon={Users} label="Registered Users" value={stats.users.toString()} />
+        <StatCard icon={Users} label="Registered Users" value={stats.users.toLocaleString("no-NO")} />
         <StatCard
           icon={CreditCard}
           label="Unlinked Cards"
-          value={stats.unlinked.toLocaleString()}
+          value={stats.unlinked.toLocaleString("no-NO")}
         />
         <StatCard
           icon={Shield}
@@ -113,7 +113,7 @@ export function AdminPage() {
                     Total Pages Synced
                   </TableCell>
                   <TableCell className="text-right">
-                    {syncState.totalPagesSynced?.toLocaleString() || "0"}
+                    {syncState.totalPagesSynced?.toLocaleString("no-NO") || "0"}
                   </TableCell>
                 </TableRow>
               </TableBody>

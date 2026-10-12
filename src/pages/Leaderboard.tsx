@@ -54,7 +54,12 @@ export function Leaderboard() {
         let cardCount = 0;
         snap.forEach((d) => {
           const data = d.data();
-          spent += typeof data.sum === "number" ? data.sum : parseFloat(data.sum) || 0;
+          const rawSum = data.sum;
+          spent += typeof rawSum === "number"
+            ? rawSum
+            : typeof rawSum === "string"
+              ? parseFloat(rawSum) || 0
+              : 0;
           cardCount++;
         });
         setTotalSpent(spent);
@@ -133,8 +138,8 @@ export function Leaderboard() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <StatCard icon={Trophy} label="Total Spent" value={`${totalSpent.toLocaleString("no-NO")} kr`} />
-        <StatCard icon={Users} label="Total Cards" value={`${totalCards.toLocaleString()}`} />
+        <StatCard icon={Trophy} label="Total Spent" value={`${totalSpent.toLocaleString("no-NO", { maximumFractionDigits: 0 })} kr`} />
+        <StatCard icon={Users} label="Total Cards" value={`${totalCards.toLocaleString("no-NO")}`} />
         <StatCard
           icon={Clock}
           label="Last Sync"
