@@ -212,7 +212,7 @@ export function UsersPage() {
                             className="h-7 px-2 text-xs font-mono"
                           >
                             <CreditCard className="w-3 h-3 mr-1" />
-                            {c.slice(0, 6)}****
+                            {isAdmin ? c : c.slice(0, 6) + "****"}
                           </Button>
                         ))}
                       </div>

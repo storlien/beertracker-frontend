@@ -7,9 +7,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Card as CardType } from "../types";
+import { useAuth } from "../auth/AuthProvider";
 
 export function CardDetailPage() {
   const { cardId } = useParams<{ cardId: string }>();
+  const { isAdmin } = useAuth();
   const [card, setCard] = useState<CardType | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -67,7 +69,7 @@ export function CardDetailPage() {
             </div>
             <div>
               <CardTitle>Card Details</CardTitle>
-              <CardDescription className="font-mono">{maskCard(card.cardNumber)}</CardDescription>
+              <CardDescription className="font-mono">{isAdmin ? card.cardNumber : maskCard(card.cardNumber)}</CardDescription>
             </div>
           </div>
         </CardHeader>

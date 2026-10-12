@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { doc, onSnapshot, collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
+import { useAuth } from "../auth/AuthProvider";
 import {
   Trophy,
   Clock,
@@ -27,6 +28,7 @@ import type { SyncState, LeaderboardEntry } from "../types";
 type Tab = "alltime" | "daily";
 
 export function Leaderboard() {
+  const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("alltime");
 
   const [allTimeEntries, setAllTimeEntries] = useState<LeaderboardEntry[]>([]);
@@ -251,7 +253,7 @@ export function Leaderboard() {
                                 to={`/cards/${c}`}
                                 className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-secondary border rounded hover:border-primary transition-colors font-mono"
                               >
-                                {maskCard(c)}
+                                {isAdmin ? c : maskCard(c)}
                               </Link>
                             ))}
                           </div>
