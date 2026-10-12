@@ -68,7 +68,7 @@ export function AdminPage() {
         <StatCard
           icon={Shield}
           label="Avg spent per registered user"
-          value={`${stats.avgPerUser.toFixed(0)} kr`}
+          value={`${stats.avgPerUser.toLocaleString("no-NO", { maximumFractionDigits: 0 })} kr`}
         />
       </div>
 

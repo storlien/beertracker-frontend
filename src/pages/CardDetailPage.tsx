@@ -81,7 +81,7 @@ export function CardDetailPage() {
                   <TrendingUp className="w-4 h-4" />
                   <span className="text-xs uppercase tracking-wider">Total Spent</span>
                 </div>
-                <div className="text-2xl font-bold text-primary">{card.sum.toFixed(0)} kr</div>
+                <div className="text-2xl font-bold text-primary">{card.sum.toLocaleString("no-NO", { maximumFractionDigits: 0 })} kr</div>
               </CardContent>
             </Card>
 

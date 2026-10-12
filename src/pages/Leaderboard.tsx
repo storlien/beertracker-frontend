@@ -133,7 +133,7 @@ export function Leaderboard() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <StatCard icon={Trophy} label="Total Spent" value={`${totalSpent.toFixed(0)} kr`} />
+        <StatCard icon={Trophy} label="Total Spent" value={`${totalSpent.toLocaleString("no-NO")} kr`} />
         <StatCard icon={Users} label="Total Cards" value={`${totalCards.toLocaleString()}`} />
         <StatCard
           icon={Clock}
@@ -260,7 +260,7 @@ export function Leaderboard() {
                         </TableCell>
                         <TableCell className="text-right">
                           <span className="font-bold text-primary">
-                            {entry.sum.toFixed(0)} kr
+                            {entry.sum.toLocaleString("no-NO", { maximumFractionDigits: 0 })} kr
                           </span>
                         </TableCell>
                       </TableRow>
