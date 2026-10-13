@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { doc, onSnapshot, collection, getDocs } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../auth/AuthProvider";
 import {
@@ -46,31 +46,24 @@ export function Leaderboard() {
     let unsubBoard: (() => void) | undefined;
     let unsubDaily: (() => void) | undefined;
     let unsubState: (() => void) | undefined;
+    let unsubStats: (() => void) | undefined;
 
-    async function fetchTotals() {
-      try {
-        const snap = await getDocs(collection(db, "cards"));
-        let spent = 0;
-        let cardCount = 0;
-        snap.forEach((d) => {
+    unsubStats = onSnapshot(
+      doc(db, "info", "stats"),
+      (d) => {
+        if (d.exists()) {
           const data = d.data();
-          const rawSum = data.sum;
-          spent += typeof rawSum === "number"
-            ? rawSum
-            : typeof rawSum === "string"
-              ? parseFloat(rawSum) || 0
-              : 0;
-          cardCount++;
-        });
-        setTotalSpent(spent);
-        setTotalCards(cardCount);
-      } catch (err: any) {
-        console.error("Firestore cards error:", err);
-        // Don't override leaderboard-specific errors
-        if (!error) setError(err.message);
+          setTotalSpent(typeof data.totalSpent === "number" ? data.totalSpent : 0);
+          setTotalCards(typeof data.totalCards === "number" ? data.totalCards : 0);
+        } else {
+          setTotalSpent(0);
+          setTotalCards(0);
+        }
+      },
+      (err) => {
+        console.error("Firestore stats error:", err);
       }
-    }
-    fetchTotals();
+    );
 
     unsubBoard = onSnapshot(
       doc(db, "leaderboard", "top100"),
@@ -128,6 +121,7 @@ export function Leaderboard() {
       unsubBoard?.();
       unsubDaily?.();
       unsubState?.();
+      unsubStats?.();
     };
   }, []);
 
