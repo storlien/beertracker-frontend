@@ -11,6 +11,9 @@ export interface User {
   firstName: string;
   lastName: string;
   cards: string[];
+  authUid?: string;
+  email?: string;
+  abakusUsername?: string;
 }
 
 export interface SyncState {

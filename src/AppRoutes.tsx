@@ -6,6 +6,8 @@ import { CardsPage } from "./pages/CardsPage";
 import { CardDetailPage } from "./pages/CardDetailPage";
 import { AdminPage } from "./pages/AdminPage";
 import { LoginPage } from "./pages/LoginPage";
+import { AuthCallbackPage } from "./pages/AuthCallbackPage";
+import { MyCardsPage } from "./pages/MyCardsPage";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -29,6 +31,8 @@ export default function AppRoutes() {
       <Route path="/cards" element={<CardsPage />} />
       <Route path="/cards/:cardId" element={<CardDetailPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/auth/callback" element={<AuthCallbackPage />} />
+      <Route path="/my-cards" element={<MyCardsPage />} />
       <Route
         path="/admin"
         element={

@@ -78,13 +78,19 @@ export function LoginPage() {
             </div>
           </div>
 
-          <Button variant="outline" disabled className="w-full cursor-not-allowed opacity-50">
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              window.location.href = "/api/auth/abakus/login";
+            }}
+          >
             <ExternalLink className="w-4 h-4 mr-2" />
-            Login with Abakus (coming soon)
+            Login with Abakus
           </Button>
 
           <p className="text-sm text-muted-foreground text-center mt-4">
-            Only admin access is available for testing.
+            Abakus members can log in to claim their cards.
           </p>
         </CardContent>
       </Card>

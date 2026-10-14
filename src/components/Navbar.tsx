@@ -1,6 +1,6 @@
 import { useLocation, Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
-import { Trophy, Users, CreditCard, Shield, Menu, X, LogOut, LogIn } from "lucide-react";
+import { Trophy, Users, CreditCard, Shield, Menu, X, LogOut, LogIn, Wallet } from "lucide-react";
 import { useState } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
@@ -18,6 +18,10 @@ export function Navbar() {
     { path: "/users", label: "Users", icon: Users },
     { path: "/cards", label: "Cards", icon: CreditCard },
   ];
+
+  if (user) {
+    navItems.push({ path: "/my-cards", label: "My Cards", icon: Wallet });
+  }
 
   if (isAdmin) {
     navItems.push({ path: "/admin", label: "Admin", icon: Shield });
